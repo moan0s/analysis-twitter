@@ -175,7 +175,7 @@ def plot_vs_tweetlength(df, key = "likes", filename = None, show_plot:bool = Fal
     Plot likes or RTs vs. tweetlength
     """
     from sklearn.linear_model import LinearRegression
-    x = [len(text) for text in df.text]
+    x = [len(text) for text in df.full_text]
     if key == "likes":
         y = np.nan_to_num(np.array(list(df.favorite_count)))
     else:
@@ -223,22 +223,17 @@ datetimes = []
 for tweet in tweets:
     rts.append(tweet.retweet_count)
     favs.append(tweet.favorite_count)
-    print(f"\nText: {tweet.text}")
-    if tweet.media:
+    print(f"\nText: {tweet.full_text}")
+    try:
+        tweet.entities['media']
         print("Tweeted with media")
         media_rts.append(tweet.retweet_count)
         media_favs.append(tweet.favorite_count)
-    else:
+    except KeyError:
         no_media_rts.append(tweet.retweet_count)
         no_media_favs.append(tweet.favorite_count)
     print(f"RT: {tweet.retweet_count}, Favs: {tweet.favorite_count}")
-    if tweet.withheld_in_countries:
-        print (f"Withheld in {tweet.withheld_in_countries}")
-
-    #weekdays.append(tweet.created_at[:3])
-    #dt = datetime.strptime(created_at[-20:], ' %H:%M:%S %z %Y')
-    dt = parser.parse(tweet.created_at)
-    datetimes.append(dt)
+    datetimes.append(tweet.created_at)
 
 
 #%%
@@ -268,9 +263,9 @@ plt.plot(list(tweets_per_weekday.keys())[::-1], list(tweets_per_weekday.values()
 #%%
 
 
-print(f"Mean RTs: {np.mean(rts):.3}")
-print(f"Mean RTs with media: {np.mean(media_rts):.3}")
-print(f"Mean RTs without media: {np.mean(no_media_rts):.3}")
+print(f"Mean RTs: {np.mean(rts):.4}")
+print(f"Mean RTs with media: {np.mean(media_rts):.4}")
+print(f"Mean RTs without media: {np.mean(no_media_rts):.4}")
 
 
 print(f"Mean favs: {np.mean(favs):.4}")
