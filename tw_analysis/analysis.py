@@ -74,6 +74,12 @@ if reload_tweets or not(os.path.exists(df_file)):
 else:
     df = pd.read_pickle(df_file)
 
+
+quoted_df = df[df.is_quote_status == True]
+df[df.entities[]
+replys_df = df[df.in_reply_to_status_id > 0]
+except_replys_df = df[np.isnan(df.in_reply_to_status_id)]
+assert(len(replys_df)+len(except_replys_df) == len(df))
 #%%
 """
 Analysis
@@ -202,17 +208,20 @@ def plot_vs_tweetlength(df, key = "likes", filename = None, show_plot:bool = Fal
         plt.close()
 
 #%%
-times = pd.DatetimeIndex(df.created_at)
-plot_time_distribution(df, times, filename="times_retweets", color_counter_key = "retweets", show_plot=True)
-plot_time_distribution(df, times, filename="times_likes", color_counter_key = "likes", show_plot=True)
-plot_date_distribution(df, times, filename="date_likes", color_counter_key = "likes", show_plot=True)
-plot_vs_tweetlength(df, filename="tweetlength_vs_likes", key = "likes", show_plot=True)
-plot_vs_tweetlength(df, filename="tweetlength_vs_rts", key = "retweets", show_plot=True)
+times = pd.DatetimeIndex(except_replys_df.created_at)
+plot_time_distribution(except_replys_df, times, filename="times_retweets", color_counter_key = "retweets", show_plot=True)
+plot_time_distribution(except_replys_df, times, filename="times_likes", color_counter_key = "likes", show_plot=True)
+plot_date_distribution(except_replys_df, times, filename="date_likes", color_counter_key = "likes", show_plot=True)
+plot_vs_tweetlength(except_replys_df, filename="tweetlength_vs_likes", key = "likes", show_plot=True)
+plot_vs_tweetlength(except_replys_df, filename="tweetlength_vs_rts", key = "retweets", show_plot=True)
 #%%
 
 
 print(f"{len(tweets)} tweets cached")
 
+percent_quoted = 100*len(quoted_df)/len(df)
+percent_replies = 100*len(replys_df)/len(df)
+print(f"{percent_quoted}% where quoted tweets")
 rts = []
 media_rts = []
 no_media_rts = []
@@ -223,16 +232,19 @@ datetimes = []
 for tweet in tweets:
     rts.append(tweet.retweet_count)
     favs.append(tweet.favorite_count)
-    print(f"\nText: {tweet.full_text}")
+    if DEBUG:
+        print(f"\nText: {tweet.full_text}")
     try:
         tweet.entities['media']
-        print("Tweeted with media")
+        if DEBUG:
+            print("Tweeted with media")
         media_rts.append(tweet.retweet_count)
         media_favs.append(tweet.favorite_count)
     except KeyError:
         no_media_rts.append(tweet.retweet_count)
         no_media_favs.append(tweet.favorite_count)
-    print(f"RT: {tweet.retweet_count}, Favs: {tweet.favorite_count}")
+    if DEBUG:
+        print(f"RT: {tweet.retweet_count}, Favs: {tweet.favorite_count}")
     datetimes.append(tweet.created_at)
 
 
