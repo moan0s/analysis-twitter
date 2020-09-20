@@ -13,6 +13,7 @@ import pandas as pd
 import calendar
 from pathlib import Path, PurePath
 import os
+from scipy.stats import linregress
 
 
 from tw_analysis import config # loads twitter credentials and potential 
@@ -153,12 +154,44 @@ def plot_example_colormap():
     plt.colorbar()
     plt.show()
 
+def plot_vs_tweetlength(df, key = "likes", filename = None, show_plot:bool = False):
+    """
+    Plot likes or RTs vs. tweetlength
+    """
+    from sklearn.linear_model import LinearRegression
+    x = [len(text) for text in df.text]
+    if key == "likes":
+        y = np.nan_to_num(np.array(list(df.favorite_count)))
+    else:
+        y = np.nan_to_num(np.array(list(df.retweet_count)))
+
+    plt.plot(x, y, 'o')
+    plt.title(f"Number of {key} vs. tweet length")
+    plt.xlabel("Characters of tweet")
+    plt.ylabel(f"Number of {key}")
+    experiment_linear_regression = linregress(x,y)
+    pVal =  experiment_linear_regression.pvalue
+    plt.text(max(x)/2, max(y)/2, f"P = {pVal:.4}")
+    result_string = f"Correlation of {key} and nuumber of characters: Pearson Coefficient = {experiment_linear_regression.rvalue:.4f}, p-Value=  {pVal:.4f}"
+    print(result_string)
+    result_string = f"MEP increase: Slope = {experiment_linear_regression.slope:.6f}, Intercept={experiment_linear_regression.intercept:.6f}"
+    linear_fit = []
+    for i in x:
+        y = experiment_linear_regression.slope*i+experiment_linear_regression.intercept
+        linear_fit.append(y)
+    plt.plot(x, linear_fit)
+    if filename:
+        plt.savefig(PurePath(analysis_path, filename), bbox_inches = "tight")
+    if not(show_plot):
+        plt.close()
 
 #%%
 times = pd.DatetimeIndex(df.created_at)
 plot_time_distribution(df, times, filename="times_retweets", color_counter_key = "retweets")
 plot_time_distribution(df, times, filename="times_likes", color_counter_key = "likes")
 plot_date_distribution(df, times, filename="date_likes", color_counter_key = "likes")
+plot_vs_tweetlength(df, filename="tweetlength_vs_likes", key = "likes", show_plot=True)
+plot_vs_tweetlength(df, filename="tweetlength_vs_rts", key = "retweets", show_plot=True)
 #%%
 
 
