@@ -75,7 +75,8 @@ Analysis
 def plot_time_distribution(df,
                            times,
                            color_counter_key:str = "retweets",
-                           filename:str = None):
+                           filename:str = None,
+                           show_plot:bool = False):
     grouped = df.groupby([times.hour])
     count = grouped.created_at.count()
     if color_counter_key == "likes":
@@ -99,7 +100,8 @@ def plot_time_distribution(df,
 def plot_date_distribution(df,
                            times,
                            color_counter_key:str = "retweets",
-                           filename:str = None):
+                           filename:str = None,
+                           show_plot:bool = False):
     """ Plots the number of actions per month starting with begin of data"""
     grouped = df.groupby([times.month, times.year])
     count = grouped.created_at.count()
