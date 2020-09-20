@@ -8,13 +8,12 @@ from matplotlib import colors as mcolors
 import numpy as np
 
 from collections import Counter
-import twitter
 import pandas as pd
 import calendar
 from pathlib import Path, PurePath
 import os
 from scipy.stats import linregress
-
+import tweepy
 
 from tw_analysis import config # loads twitter credentials and potential 
 
@@ -23,27 +22,41 @@ if not(os.path.isdir(analysis_path)):
     os.makedirs(analysis_path)
 
 df_filename = "tweets_df.pkl"
+reload_tweets = False
 
-filepath = "tmp.pkl"
+
+df_file = PurePath(analysis_path, df_filename)
+
 #%%
 """
 Gather data
 """
-api = twitter.Api(consumer_key=config.twitter_keys['consumer_key'],
-                  consumer_secret=config.twitter_keys['consumer_secret'],
-                  access_token_key=config.twitter_keys['access_token_key'],
-                  access_token_secret=config.twitter_keys['access_token_secret'])
-#%%
+consumer_key=config.twitter_keys['consumer_key']
+consumer_secret=config.twitter_keys['consumer_secret']
+access_token=config.twitter_keys['access_token_key']
+access_token_secret=config.twitter_keys['access_token_secret']
+auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_token, access_token_secret)
 
+api = tweepy.API(auth)
+
+#%%
+"""
+Load data
+"""
+if reload_tweets:
+    earliest_ID = None
+elif os.path.exists(df_file):
+    df = pd.read_pickle(df_file)
+    earliest_ID  = df["id"].min()
+else:
+    earliest_ID = None
+#%%
 
 tweets = []
-earliest_ID = None
-#%%
 for i in range (0,80):
-    tweets.extend(api.GetUserTimeline(screen_name=config.user,
-                                      count = 200,
-                                      include_rts=False,
-                                      exclude_replies=True,
+    tweets.extend(api.user_timeline(screen_name=config.user,
+                                      count = 100,
                                       max_id = earliest_ID))
     earliest_ID = tweets[-1].id
 
@@ -51,21 +64,18 @@ for i in range (0,80):
 # Create and store a dataframe
 tweet_dicts = []
 for tweet in tweets:
-    tweet_as_dict = tweet.AsDict()
+    tweet_as_dict = tweet.__dict__
     tweet_dicts.append(tweet_as_dict)
 
-df = pd.DataFrame(tweet_dicts)
+try:
+    df
+    loaded_tweets = pd.DataFrame(tweet_dicts)
+    df = df.append(loaded_tweets)
+except NameError:
+    df = pd.DataFrame(tweet_dicts)
 
 
 df.to_pickle(PurePath(analysis_path, df_filename))
-
-
-#%%
-"""
-Load data
-"""
-df = pd.read_pickle(PurePath(analysis_path, df_filename))
-
 
 #%%
 """
@@ -96,6 +106,10 @@ def plot_time_distribution(df,
     cbar.set_label(f"Mean of {color_counter_key}")
     if filename:
         plt.savefig(PurePath(analysis_path, filename), bbox_inches = "tight")
+    if show_plot:
+        plt.show()
+    else:
+        plt.close()
 
 def plot_date_distribution(df,
                            times,
@@ -136,9 +150,12 @@ def plot_date_distribution(df,
     plt.xlabel("Month of posts")
     plt.ylabel("Number of posts")
     cbar.set_label(f"Mean of {color_counter_key}")
-    plt.show()
     if filename:
         plt.savefig(PurePath(analysis_path, filename), bbox_inches = "tight")
+    if show_plot:
+        plt.show()
+    else:
+        plt.close()
 
 def create_colormap():
     cvals  = [0, 0.05, 0.0501, 1]
@@ -189,9 +206,9 @@ def plot_vs_tweetlength(df, key = "likes", filename = None, show_plot:bool = Fal
 
 #%%
 times = pd.DatetimeIndex(df.created_at)
-plot_time_distribution(df, times, filename="times_retweets", color_counter_key = "retweets")
-plot_time_distribution(df, times, filename="times_likes", color_counter_key = "likes")
-plot_date_distribution(df, times, filename="date_likes", color_counter_key = "likes")
+plot_time_distribution(df, times, filename="times_retweets", color_counter_key = "retweets", show_plot=True)
+plot_time_distribution(df, times, filename="times_likes", color_counter_key = "likes", show_plot=True)
+plot_date_distribution(df, times, filename="date_likes", color_counter_key = "likes", show_plot=True)
 plot_vs_tweetlength(df, filename="tweetlength_vs_likes", key = "likes", show_plot=True)
 plot_vs_tweetlength(df, filename="tweetlength_vs_rts", key = "retweets", show_plot=True)
 #%%
