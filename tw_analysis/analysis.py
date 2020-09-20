@@ -44,38 +44,35 @@ api = tweepy.API(auth)
 """
 Load data
 """
-if reload_tweets:
+if reload_tweets or not(os.path.exists(df_file)):
     earliest_ID = None
-elif os.path.exists(df_file):
-    df = pd.read_pickle(df_file)
-    earliest_ID  = df["id"].min()
-else:
-    earliest_ID = None
-#%%
+    tweets = []
 
-tweets = []
-for i in range (0,80):
-    tweets.extend(api.user_timeline(screen_name=config.user,
-                                      count = 100,
-                                      max_id = earliest_ID))
-    earliest_ID = tweets[-1].id
-
-#%%
-# Create and store a dataframe
-tweet_dicts = []
-for tweet in tweets:
-    tweet_as_dict = tweet.__dict__
-    tweet_dicts.append(tweet_as_dict)
-
-try:
-    df
-    loaded_tweets = pd.DataFrame(tweet_dicts)
-    df = df.append(loaded_tweets)
-except NameError:
+    #fetch data
+    while True: #twitter allows only fetching 3200 tweets
+        print(f"Numnber of tweets: {len(tweets)}")
+        if earliest_ID:
+            timeline_fetch = api.user_timeline(screen_name=config.user,
+                                               count = 100,
+                                               tweet_mode="extended",
+                                               max_id = earliest_ID-1)
+        else:
+            timeline_fetch = api.user_timeline(screen_name=config.user,
+                                           count = 100,
+                                           tweet_mode="extended")
+        if len(timeline_fetch) == 0:
+            break
+        tweets.extend(timeline_fetch)
+        earliest_ID = tweets[-1].id
+    # Create and store a dataframe
+    tweet_dicts = []
+    for tweet in tweets:
+        tweet_as_dict = tweet.__dict__
+        tweet_dicts.append(tweet_as_dict)
     df = pd.DataFrame(tweet_dicts)
-
-
-df.to_pickle(PurePath(analysis_path, df_filename))
+    df.to_pickle(PurePath(analysis_path, df_filename))
+else:
+    df = pd.read_pickle(df_file)
 
 #%%
 """
