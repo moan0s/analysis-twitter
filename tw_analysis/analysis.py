@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import dateutil.parser as parser
 from matplotlib import pyplot as plt
 from matplotlib import cm
 from matplotlib import colors as mcolors
@@ -12,8 +11,8 @@ import calendar
 from pathlib import Path, PurePath
 import os
 from scipy.stats import linregress
-import tweepy
 
+from tw_analysis import load_tweets
 from tw_analysis import config  # loads twitter credentials and target
 
 analysis_path = PurePath(Path.home(), config.project_name)
@@ -27,56 +26,9 @@ reload_tweets = False
 
 df_file = PurePath(analysis_path, df_filename)
 
-#%%
-"""
-Gather data
-"""
-consumer_key = config.twitter_keys["consumer_key"]
-consumer_secret = config.twitter_keys["consumer_secret"]
-access_token = config.twitter_keys["access_token_key"]
-access_token_secret = config.twitter_keys["access_token_secret"]
-auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-auth.set_access_token(access_token, access_token_secret)
-
-api = tweepy.API(auth)
-
-#%%
-"""
-Load data
-"""
-if reload_tweets or not (os.path.exists(df_file)):
-    earliest_ID = None
-    tweets = []
-
-    # fetch data
-    while True:  # twitter allows only fetching 3200 tweets
-        print(f"Numnber of tweets: {len(tweets)}")
-        if earliest_ID:
-            timeline_fetch = api.user_timeline(
-                screen_name=config.user,
-                count=100,
-                tweet_mode="extended",
-                max_id=earliest_ID - 1,
-            )
-        else:
-            timeline_fetch = api.user_timeline(
-                screen_name=config.user, count=100, tweet_mode="extended"
-            )
-        if len(timeline_fetch) == 0:
-            break
-        tweets.extend(timeline_fetch)
-        earliest_ID = tweets[-1].id
-    # Create and store a dataframe
-    tweet_dicts = []
-    for tweet in tweets:
-        tweet_as_dict = tweet.__dict__
-        tweet_dicts.append(tweet_as_dict)
-    df = pd.DataFrame(tweet_dicts)
-    df.to_pickle(PurePath(analysis_path, df_filename))
-else:
-    df = pd.read_pickle(df_file)
 
 
+df = load_tweets.load_tweets_of_account(config.user, df_file, reload=False)
 quoted_df = df[df.is_quote_status == True]
 replys_df = df[df.in_reply_to_status_id > 0]
 except_replys_df = df[np.isnan(df.in_reply_to_status_id)]
@@ -259,7 +211,7 @@ plot_vs_tweetlength(
 #%%
 
 
-print(f"{len(tweets)} tweets cached")
+print(f"{len(df)} tweets cached")
 
 percent_quoted = 100 * len(quoted_df) / len(df)
 percent_replies = 100 * len(replys_df) / len(df)
@@ -271,7 +223,7 @@ favs = []
 media_favs = []
 no_media_favs = []
 datetimes = []
-for tweet in tweets:
+for row_idx, tweet in df.iterrows():
     rts.append(tweet.retweet_count)
     favs.append(tweet.favorite_count)
     if config.DEBUG:
@@ -293,13 +245,13 @@ for tweet in tweets:
 #%%
 dt_start = datetimes[-1]
 dt_end = datetimes[0]
-print(f"Starting analysis at {tweets[-1].created_at}")
-print(f"Ending analysis at {tweets[0].created_at}")
+print(f"Starting analysis at {df.iloc[-1].created_at}")
+print(f"Ending analysis at {df.iloc[0].created_at}")
 
 
 delta = dt_end - dt_start
 print(
-    f"So the analysis covers {delta.days} days. There have been {len(tweets)/delta.days:.3} tweets/per day."
+    f"So the analysis covers {delta.days} days. There have been {len(df)/delta.days:.3} tweets/per day."
 )
 
 weekdays = []

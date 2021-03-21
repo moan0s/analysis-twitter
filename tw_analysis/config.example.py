@@ -9,6 +9,10 @@ twitter_keys = {
 }
 
 project_name = "twitter_analysis"  # will create a directory of that name
+df_filename = "tweets_df.pkl"
 
 user = "jgebuehr"
 user_id = "1071154087536803848"
+
+DEBUG = False
+reload_tweets = False
