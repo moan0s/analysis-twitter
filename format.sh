@@ -1,4 +1,4 @@
-docformatter --check -r .
-black --check .
+docformatter -r .
+black .
 isort -c .
 flake8 .
