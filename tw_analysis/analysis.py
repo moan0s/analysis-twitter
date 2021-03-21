@@ -14,11 +14,12 @@ import os
 from scipy.stats import linregress
 import tweepy
 
-from tw_analysis import config  # loads twitter credentials and potential
+from tw_analysis import config  # loads twitter credentials and target
 
 analysis_path = PurePath(Path.home(), config.project_name)
 if not (os.path.isdir(analysis_path)):
     os.makedirs(analysis_path)
+
 
 df_filename = "tweets_df.pkl"
 reload_tweets = False
@@ -195,7 +196,6 @@ def plot_vs_tweetlength(df, key="likes", filename=None, show_plot: bool = False)
     """
     Plot likes or RTs vs. tweetlength
     """
-    from sklearn.linear_model import LinearRegression
 
     x = [len(text) for text in df.full_text]
     if key == "likes":
@@ -210,7 +210,7 @@ def plot_vs_tweetlength(df, key="likes", filename=None, show_plot: bool = False)
     experiment_linear_regression = linregress(x, y)
     pVal = experiment_linear_regression.pvalue
     plt.text(max(x) / 2, max(y) / 2, f"P = {pVal:.4}")
-    result_string = f"Correlation of {key} and nuumber of characters: Pearson Coefficient = {experiment_linear_regression.rvalue:.4f}, p-Value=  {pVal:.4f}"
+    result_string = f"Correlation of {key} and number of characters: Pearson Coefficient = {experiment_linear_regression.rvalue:.4f}, p-Value=  {pVal:.4f}"
     print(result_string)
     result_string = f"MEP increase: Slope = {experiment_linear_regression.slope:.6f}, Intercept={experiment_linear_regression.intercept:.6f}"
     linear_fit = []
@@ -234,21 +234,21 @@ plot_time_distribution(
     times,
     filename="times_retweets",
     color_counter_key="retweets",
-    show_plot=True,
+    show_plot=False,
 )
 plot_time_distribution(
     except_replys_df,
     times,
     filename="times_likes",
     color_counter_key="likes",
-    show_plot=True,
+    show_plot=False,
 )
 plot_date_distribution(
     except_replys_df,
     times,
     filename="date_likes",
     color_counter_key="likes",
-    show_plot=True,
+    show_plot=False,
 )
 plot_vs_tweetlength(
     except_replys_df, filename="tweetlength_vs_likes", key="likes", show_plot=True
@@ -263,7 +263,7 @@ print(f"{len(tweets)} tweets cached")
 
 percent_quoted = 100 * len(quoted_df) / len(df)
 percent_replies = 100 * len(replys_df) / len(df)
-print(f"{percent_quoted}% where quoted tweets")
+print(f"{percent_quoted:.4}% where quoted tweets")
 rts = []
 media_rts = []
 no_media_rts = []
@@ -274,18 +274,18 @@ datetimes = []
 for tweet in tweets:
     rts.append(tweet.retweet_count)
     favs.append(tweet.favorite_count)
-    if DEBUG:
+    if config.DEBUG:
         print(f"\nText: {tweet.full_text}")
     try:
         tweet.entities["media"]
-        if DEBUG:
+        if config.DEBUG:
             print("Tweeted with media")
         media_rts.append(tweet.retweet_count)
         media_favs.append(tweet.favorite_count)
     except KeyError:
         no_media_rts.append(tweet.retweet_count)
         no_media_favs.append(tweet.favorite_count)
-    if DEBUG:
+    if config.DEBUG:
         print(f"RT: {tweet.retweet_count}, Favs: {tweet.favorite_count}")
     datetimes.append(tweet.created_at)
 
