@@ -1,9 +1,5 @@
 matplotlib
 numpy
 pandas
-os
 pathlib
 twitter
-calendar
-dateutil
-collections
